@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -32,12 +31,20 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
     fechaVencimiento: "",
   })
 
-  const validateForm = (): boolean => {
+  useEffect(() => {
+    if (formData.id || formData.fechaFabricacion || formData.fechaVencimiento) {
+      validateFormRealTime()
+    }
+  }, [formData])
+
+  const validateFormRealTime = () => {
     const newErrors: Record<string, string> = {}
 
-    const idPattern = /^ID_\d+$/
-    if (!idPattern.test(formData.id)) {
-      newErrors.id = "El ID debe tener el formato ID_NUMERO (ej: ID_123)"
+    if (formData.id) {
+      const idPattern = /^ID_\d+$/
+      if (!idPattern.test(formData.id)) {
+        newErrors.id = "El ID debe tener el formato ID_NUMERO (ej: ID_123)"
+      }
     }
 
     if (formData.fechaFabricacion) {
@@ -81,6 +88,10 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
+  }
+
+  const validateForm = (): boolean => {
+    return validateFormRealTime()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -131,8 +142,8 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
       const txHash = await registerBatchWithWallet(batchId, metadata, signer)
 
       toast({
-        title: "✅ Lote Registrado",
-        description: `Transacción confirmada: ${txHash.slice(0, 10)}...`,
+        title: "✅ Transacción Exitosa",
+        description: `Lote registrado en blockchain: ${txHash.slice(0, 10)}...`,
       })
 
       const qrResponse = await fetch("/api/generate-qr", {
@@ -175,11 +186,13 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
         fechaFabricacion: "",
         fechaVencimiento: "",
       })
+      setErrors({})
     } catch (error: any) {
-      console.error("[v0] Error during submission:", error)
+      console.error("Error during submission:", error)
+
       toast({
-        title: "❌ Error",
-        description: error.message || "Error al procesar el lote",
+        title: "❌ Error en la Transacción",
+        description: error.message || "No se pudo completar el registro del lote",
         variant: "destructive",
       })
     } finally {
@@ -189,20 +202,15 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
 
   const handleFieldChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value })
-    if (errors[field]) {
-      setErrors({ ...errors, [field]: "" })
-    }
   }
 
   const isFormValid = () => {
-    return (
-      formData.id &&
-      formData.contenido &&
-      formData.cantidad &&
-      formData.fechaFabricacion &&
-      formData.fechaVencimiento &&
-      Object.keys(errors).length === 0
-    )
+    const allFieldsFilled =
+      formData.id && formData.contenido && formData.cantidad && formData.fechaFabricacion && formData.fechaVencimiento
+
+    const noErrors = Object.keys(errors).length === 0
+
+    return allFieldsFilled && noErrors
   }
 
   return (
