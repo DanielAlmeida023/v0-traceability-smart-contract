@@ -118,11 +118,14 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
     setIsSubmitting(true)
 
     try {
+      console.log("[v0] Starting batch registration process")
+
       if (typeof window === "undefined" || !window.ethereum) {
         throw new Error("MetaMask no está disponible. Por favor instala MetaMask.")
       }
 
       const batchId = getBatchId(formData.id)
+      console.log("[v0] Generated batchId:", batchId)
 
       const metadata = JSON.stringify({
         contenido: formData.contenido,
@@ -131,43 +134,60 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
         fechaVencimiento: formData.fechaVencimiento,
       })
 
+      console.log("[v0] Metadata:", metadata)
+
       const provider = new ethers.BrowserProvider(window.ethereum)
       const signer = await provider.getSigner()
 
+      console.log("[v0] Registering batch on blockchain...")
       const txHash = await registerBatchWithWallet(batchId, metadata, signer)
-
-      const qrResponse = await fetch("/api/generate-qr", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          batchId,
-          data: { ...formData, txHash },
-        }),
-      })
-
-      if (!qrResponse.ok) {
-        const errorText = await qrResponse.text()
-        throw new Error(`Error al generar QR: ${errorText}`)
-      }
-
-      const qrData = await qrResponse.json()
-
-      toast({
-        title: "✅ Registro Exitoso",
-        description: `Lote registrado en blockchain y QR generado correctamente`,
-      })
+      console.log("[v0] Transaction hash:", txHash)
 
       const newBatch: BatchData = {
         ...formData,
         cantidad: Number.parseInt(formData.cantidad),
         estado: "Enviado",
-        qrUrl: qrData.qrUrl,
         txHash: txHash,
         timestamp: Date.now(),
         emitter: account || undefined,
       }
 
+      try {
+        console.log("[v0] Generating QR code...")
+        const qrResponse = await fetch("/api/generate-qr", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            batchId,
+            data: { ...formData, txHash },
+          }),
+        })
+
+        console.log("[v0] QR API response status:", qrResponse.status)
+
+        if (qrResponse.ok) {
+          const qrData = await qrResponse.json()
+          console.log("[v0] QR data received:", qrData)
+          newBatch.qrUrl = qrData.qrUrl
+        } else {
+          const errorText = await qrResponse.text()
+          console.error("[v0] QR generation failed:", errorText)
+          // No lanzar error, solo registrar
+        }
+      } catch (qrError) {
+        console.error("[v0] QR generation error:", qrError)
+        // Continuar sin QR
+      }
+
+      console.log("[v0] Calling onBatchCreated with batch:", newBatch)
       onBatchCreated(newBatch)
+
+      toast({
+        title: "✅ Registro Exitoso",
+        description: newBatch.qrUrl
+          ? "Lote registrado en blockchain y QR generado correctamente"
+          : "Lote registrado en blockchain (QR no disponible)",
+      })
 
       setFormData({
         id: "",
@@ -178,7 +198,7 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
       })
       setErrors({})
     } catch (error: any) {
-      console.error("Error during submission:", error)
+      console.error("[v0] Error during submission:", error)
 
       toast({
         title: "❌ Error en la Transacción",

@@ -26,7 +26,13 @@ export default function Home() {
   }, [batches])
 
   const handleBatchCreated = (newBatch: BatchData) => {
-    setBatches((prev) => [newBatch, ...prev])
+    console.log("[v0] handleBatchCreated called with:", newBatch)
+    setBatches((prev) => {
+      const updated = [newBatch, ...prev]
+      console.log("[v0] Updated batches:", updated)
+      localStorage.setItem("batches", JSON.stringify(updated))
+      return updated
+    })
   }
 
   return (
