@@ -52,14 +52,27 @@ export async function registerBatchWithWallet(
   metadata: string,
   signer: ethers.Signer,
 ): Promise<string> {
+  console.log("[v0] registerBatchWithWallet called")
+  console.log("[v0] Batch ID:", batchId)
+  console.log("[v0] Metadata:", metadata)
+
   const contract = getContract(signer)
+  console.log("[v0] Contract address:", await contract.getAddress())
 
   try {
+    console.log("[v0] Calling registrarEnviado on contract")
     const tx = await contract.registrarEnviado(batchId, metadata)
-    await tx.wait()
+    console.log("[v0] Transaction sent:", tx.hash)
+
+    console.log("[v0] Waiting for transaction confirmation")
+    const receipt = await tx.wait()
+    console.log("[v0] Transaction confirmed in block:", receipt.blockNumber)
+
     return tx.hash
   } catch (error: any) {
-    console.error("Error registering batch:", error)
+    console.error("[v0] Error in registerBatchWithWallet:", error)
+    console.error("[v0] Error code:", error.code)
+    console.error("[v0] Error message:", error.message)
 
     // Parse common contract errors
     if (error.message.includes("AccessControlUnauthorizedAccount")) {
@@ -70,6 +83,9 @@ export async function registerBatchWithWallet(
     }
     if (error.message.includes("user rejected")) {
       throw new Error("Transacción rechazada por el usuario")
+    }
+    if (error.code === "NETWORK_ERROR" || error.code === "TIMEOUT") {
+      throw new Error("Error de red. Verifica tu conexión a Scroll Sepolia.")
     }
 
     throw new Error(error.message || "Error al registrar en blockchain")
