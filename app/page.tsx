@@ -6,6 +6,7 @@ import { BatchForm } from "@/components/batch-form"
 import { BatchTable } from "@/components/batch-table"
 import type { BatchData } from "@/lib/types"
 import { Toaster } from "@/components/ui/toaster"
+import { getBatchId, getBatchStatus, getStateLabel } from "@/lib/blockchain"
 
 export default function Home() {
   const [batches, setBatches] = useState<BatchData[]>([])
@@ -26,13 +27,36 @@ export default function Home() {
   }, [batches])
 
   const handleBatchCreated = (newBatch: BatchData) => {
-    console.log("[v0] handleBatchCreated called with:", newBatch)
     setBatches((prev) => {
       const updated = [newBatch, ...prev]
-      console.log("[v0] Updated batches:", updated)
       localStorage.setItem("batches", JSON.stringify(updated))
       return updated
     })
+  }
+
+  const handleRefreshStates = async () => {
+    const updatedBatches = await Promise.all(
+      batches.map(async (batch) => {
+        try {
+          const batchId = getBatchId(batch.id)
+          const status = await getBatchStatus(batchId)
+
+          if (status && status.exists) {
+            return {
+              ...batch,
+              estado: getStateLabel(status.state),
+            }
+          }
+          return batch
+        } catch (error) {
+          console.error(`Error fetching status for batch ${batch.id}:`, error)
+          return batch
+        }
+      }),
+    )
+
+    setBatches(updatedBatches)
+    localStorage.setItem("batches", JSON.stringify(updatedBatches))
   }
 
   return (
@@ -50,7 +74,7 @@ export default function Home() {
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-8">
           <BatchForm onBatchCreated={handleBatchCreated} />
-          <BatchTable batches={batches} />
+          <BatchTable batches={batches} onRefresh={handleRefreshStates} />
         </div>
       </main>
 

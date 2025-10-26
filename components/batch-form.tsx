@@ -217,9 +217,9 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
     const allFieldsFilled =
       formData.id && formData.contenido && formData.cantidad && formData.fechaFabricacion && formData.fechaVencimiento
 
-    const noErrors = Object.keys(errors).length === 0
+    const hasErrors = Object.values(errors).some((error) => error !== "")
 
-    return allFieldsFilled && noErrors
+    return allFieldsFilled && !hasErrors && isConnected
   }
 
   return (
@@ -300,7 +300,7 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting || !isConnected || !isFormValid()}>
+          <Button type="submit" className="w-full" disabled={isSubmitting || !isFormValid()}>
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

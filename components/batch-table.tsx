@@ -7,14 +7,18 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ExternalLink, QrCode, Package, Download } from "lucide-react"
+import { ExternalLink, QrCode, Package, Download, RefreshCw } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 interface BatchTableProps {
   batches: BatchData[]
+  onRefresh: () => Promise<void>
 }
 
-export function BatchTable({ batches }: BatchTableProps) {
+export function BatchTable({ batches, onRefresh }: BatchTableProps) {
   const [selectedBatch, setSelectedBatch] = useState<BatchData | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const { toast } = useToast()
 
   const getStatusColor = (estado: string) => {
     switch (estado) {
@@ -22,6 +26,8 @@ export function BatchTable({ batches }: BatchTableProps) {
         return "default"
       case "Recibido":
         return "secondary"
+      case "Pendiente":
+        return "outline"
       default:
         return "outline"
     }
@@ -42,14 +48,39 @@ export function BatchTable({ batches }: BatchTableProps) {
     document.body.removeChild(link)
   }
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await onRefresh()
+      toast({
+        title: "Estados actualizados",
+        description: "Los estados de los lotes se han sincronizado con la blockchain",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error al actualizar",
+        description: "No se pudieron actualizar los estados desde la blockchain",
+      })
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
   return (
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Historial de Envíos
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              <CardTitle>Historial de Envíos</CardTitle>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing || batches.length === 0}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+              Actualizar Estados
+            </Button>
+          </div>
           <CardDescription>Lista de todos los lotes registrados y su estado actual</CardDescription>
         </CardHeader>
         <CardContent>
