@@ -147,6 +147,7 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
       }
 
       try {
+        console.log("[v0] Starting QR generation...")
         const qrData = JSON.stringify({
           batchId: formData.id,
           contenido: formData.contenido,
@@ -156,13 +157,27 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
           txHash: txHash,
           verifyUrl: `https://sepolia.scrollscan.com/tx/${txHash}`,
         })
+        console.log("[v0] QR data prepared:", qrData)
 
         const qrUrl = await generateQRCode(qrData)
-        newBatch.qrUrl = qrUrl
+        console.log("[v0] QR generated successfully:", qrUrl ? "Yes" : "No")
+
+        if (qrUrl) {
+          newBatch.qrUrl = qrUrl
+          console.log("[v0] QR URL saved to batch")
+        } else {
+          console.error("[v0] QR URL is empty or undefined")
+        }
       } catch (qrError) {
-        console.error("Error generating QR:", qrError)
-        // Continue without QR
+        console.error("[v0] Error generating QR:", qrError)
+        console.error("[v0] QR Error details:", {
+          message: qrError instanceof Error ? qrError.message : "Unknown error",
+          stack: qrError instanceof Error ? qrError.stack : undefined,
+        })
       }
+
+      console.log("[v0] Final batch object:", newBatch)
+      console.log("[v0] Batch has QR?", !!newBatch.qrUrl)
 
       onBatchCreated(newBatch)
 
