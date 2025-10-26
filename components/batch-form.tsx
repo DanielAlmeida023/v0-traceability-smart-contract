@@ -86,10 +86,7 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    console.log("[v0] Starting batch submission")
-
     if (!isConnected) {
-      console.log("[v0] Wallet not connected")
       toast({
         title: "Error",
         description: "Debes conectar tu wallet primero",
@@ -99,7 +96,6 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
     }
 
     if (!validateForm()) {
-      console.log("[v0] Form validation failed")
       toast({
         title: "Error de validación",
         description: "Por favor corrige los errores en el formulario",
@@ -112,13 +108,10 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
 
     try {
       if (typeof window === "undefined" || !window.ethereum) {
-        console.log("[v0] MetaMask not available")
         throw new Error("MetaMask no está disponible. Por favor instala MetaMask.")
       }
 
-      console.log("[v0] Generating batch ID")
       const batchId = getBatchId(formData.id)
-      console.log("[v0] Batch ID:", batchId)
 
       const metadata = JSON.stringify({
         contenido: formData.contenido,
@@ -127,28 +120,21 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
         fechaVencimiento: formData.fechaVencimiento,
       })
 
-      console.log("[v0] Metadata:", metadata)
-
       toast({
         title: "Firma requerida",
         description: "Por favor firma la transacción en MetaMask",
       })
 
-      console.log("[v0] Creating provider and signer")
       const provider = new ethers.BrowserProvider(window.ethereum)
       const signer = await provider.getSigner()
-      console.log("[v0] Signer address:", await signer.getAddress())
 
-      console.log("[v0] Registering batch on blockchain")
       const txHash = await registerBatchWithWallet(batchId, metadata, signer)
-      console.log("[v0] Transaction hash:", txHash)
 
       toast({
-        title: "Lote Registrado",
+        title: "✅ Lote Registrado",
         description: `Transacción confirmada: ${txHash.slice(0, 10)}...`,
       })
 
-      console.log("[v0] Generating QR code")
       const qrResponse = await fetch("/api/generate-qr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -158,19 +144,15 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
         }),
       })
 
-      console.log("[v0] QR response status:", qrResponse.status)
-
       if (!qrResponse.ok) {
         const errorText = await qrResponse.text()
-        console.log("[v0] QR generation error:", errorText)
         throw new Error(`Error al generar QR: ${errorText}`)
       }
 
       const qrData = await qrResponse.json()
-      console.log("[v0] QR data received:", qrData)
 
       toast({
-        title: "QR Generado",
+        title: "✅ QR Generado",
         description: "Código QR creado exitosamente",
       })
 
@@ -184,7 +166,6 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
         emitter: account || undefined,
       }
 
-      console.log("[v0] Batch created successfully:", newBatch)
       onBatchCreated(newBatch)
 
       setFormData({
@@ -196,15 +177,13 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
       })
     } catch (error: any) {
       console.error("[v0] Error during submission:", error)
-      console.error("[v0] Error stack:", error.stack)
       toast({
-        title: "Error",
+        title: "❌ Error",
         description: error.message || "Error al procesar el lote",
         variant: "destructive",
       })
     } finally {
       setIsSubmitting(false)
-      console.log("[v0] Submission process completed")
     }
   }
 

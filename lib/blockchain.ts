@@ -52,31 +52,18 @@ export async function registerBatchWithWallet(
   metadata: string,
   signer: ethers.Signer,
 ): Promise<string> {
-  console.log("[v0] registerBatchWithWallet called")
-  console.log("[v0] Batch ID:", batchId)
-  console.log("[v0] Metadata:", metadata)
-
   const contract = getContract(signer)
-  console.log("[v0] Contract address:", await contract.getAddress())
 
   try {
-    console.log("[v0] Calling registrarEnviado on contract")
     const tx = await contract.registrarEnviado(batchId, metadata)
-    console.log("[v0] Transaction sent:", tx.hash)
-
-    console.log("[v0] Waiting for transaction confirmation")
     const receipt = await tx.wait()
-    console.log("[v0] Transaction confirmed in block:", receipt.blockNumber)
-
     return tx.hash
   } catch (error: any) {
-    console.error("[v0] Error in registerBatchWithWallet:", error)
-    console.error("[v0] Error code:", error.code)
-    console.error("[v0] Error message:", error.message)
-
-    // Parse common contract errors
     if (error.message.includes("AccessControlUnauthorizedAccount")) {
-      throw new Error("Tu wallet no tiene el rol EMITTER_ROLE necesario")
+      const signerAddress = await signer.getAddress()
+      throw new Error(
+        `⛔ Permiso denegado: La dirección ${signerAddress.slice(0, 6)}...${signerAddress.slice(-4)} no tiene el rol EMITTER_ROLE necesario para registrar envíos. Contacta al administrador del contrato.`,
+      )
     }
     if (error.message.includes("BatchYaEnviado")) {
       throw new Error("Este lote ya fue enviado anteriormente")
