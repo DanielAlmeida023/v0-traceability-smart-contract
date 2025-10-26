@@ -131,20 +131,10 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
         fechaVencimiento: formData.fechaVencimiento,
       })
 
-      toast({
-        title: "Firma requerida",
-        description: "Por favor firma la transacción en MetaMask",
-      })
-
       const provider = new ethers.BrowserProvider(window.ethereum)
       const signer = await provider.getSigner()
 
       const txHash = await registerBatchWithWallet(batchId, metadata, signer)
-
-      toast({
-        title: "✅ Transacción Exitosa",
-        description: `Lote registrado en blockchain: ${txHash.slice(0, 10)}...`,
-      })
 
       const qrResponse = await fetch("/api/generate-qr", {
         method: "POST",
@@ -163,8 +153,8 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
       const qrData = await qrResponse.json()
 
       toast({
-        title: "✅ QR Generado",
-        description: "Código QR creado exitosamente",
+        title: "✅ Registro Exitoso",
+        description: `Lote registrado en blockchain y QR generado correctamente`,
       })
 
       const newBatch: BatchData = {
