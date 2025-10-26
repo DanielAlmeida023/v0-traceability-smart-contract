@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ExternalLink, QrCode, Package } from "lucide-react"
+import { ExternalLink, QrCode, Package, Download } from "lucide-react"
 
 interface BatchTableProps {
   batches: BatchData[]
@@ -29,6 +29,17 @@ export function BatchTable({ batches }: BatchTableProps) {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("es-ES")
+  }
+
+  const downloadQR = (batch: BatchData) => {
+    if (!batch.qrUrl) return
+
+    const link = document.createElement("a")
+    link.href = batch.qrUrl
+    link.download = `QR_${batch.id}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   return (
@@ -122,7 +133,8 @@ export function BatchTable({ batches }: BatchTableProps) {
                   <strong>Estado:</strong> {selectedBatch.estado}
                 </p>
               </div>
-              <Button variant="outline" onClick={() => window.open(selectedBatch.qrUrl, "_blank")}>
+              <Button variant="outline" onClick={() => downloadQR(selectedBatch)}>
+                <Download className="h-4 w-4 mr-2" />
                 Descargar QR
               </Button>
             </div>
