@@ -15,7 +15,7 @@ Sistema de trazabilidad para emisores que permite registrar lotes de productos e
 
 1. **Smart Contract Desplegado**: Debes tener el contrato `TraceabilityV1` desplegado en Scroll Sepolia
 2. **MetaMask**: Extensión de navegador instalada
-3. **Wallet con EMITTER_ROLE**: El backend necesita una wallet con permisos de emisor en el contrato
+3. **Wallet con EMITTER_ROLE**: Tu wallet de MetaMask debe tener permisos de emisor en el contrato
 
 ## 🛠️ Configuración
 
@@ -31,21 +31,12 @@ Crea un archivo `.env.local` basado en `.env.example`:
 
 \`\`\`env
 NEXT_PUBLIC_CONTRACT_ADDRESS=0xTU_CONTRATO_AQUI
-BACKEND_PRIVATE_KEY=0xTU_PRIVATE_KEY_AQUI
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 \`\`\`
 
 **Importante**: 
-- La wallet del `BACKEND_PRIVATE_KEY` debe tener el rol `EMITTER_ROLE` en el contrato
-- Para otorgar el rol, el admin del contrato debe ejecutar: `setEmitter(address, true)`
-
-### 3. Ejecutar en Desarrollo
-
-\`\`\`bash
-npm run dev
-\`\`\`
-
-Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
+- Tu wallet de MetaMask debe tener el rol `EMITTER_ROLE` en el contrato
+- Para otorgar el rol, el admin del contrato debe ejecutar: `setEmitter(tuAddress, true)`
 
 ## 📖 Uso
 
@@ -53,12 +44,12 @@ Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 
 1. **Conectar Wallet**: Haz clic en "Conectar MetaMask" y autoriza la conexión
 2. **Completar Formulario**: 
-   - ID del Lote (único)
+   - ID del Lote (formato: ID_NUMERO, ej: ID_123)
    - Contenido del producto
    - Cantidad
-   - Fecha de fabricación
-   - Fecha de vencimiento
-3. **Registrar**: Haz clic en "Registrar Envío"
+   - Fecha de fabricación (no mayor a 5 años de antigüedad)
+   - Fecha de vencimiento (no mayor a 5 años desde hoy)
+3. **Firmar Transacción**: Haz clic en "Firmar y Registrar Envío" y confirma en MetaMask
 4. **Confirmación**: El sistema generará el QR y registrará en blockchain
 
 ### Ver Historial
@@ -78,21 +69,23 @@ El contrato `TraceabilityV1` incluye:
 ## 🏗️ Arquitectura
 
 \`\`\`
-Frontend (Next.js)
-    ↓
-API Routes (/api/generate-qr, /api/register-batch)
+Frontend (Next.js + MetaMask)
     ↓
 Smart Contract (Scroll Sepolia)
+    ↓
+API Routes (/api/generate-qr) - Solo para QR
 \`\`\`
 
 ## 🔐 Seguridad
 
-- Las private keys nunca se exponen al frontend
-- El backend actúa como relayer para firmar transacciones
+- Las transacciones se firman directamente desde tu wallet de MetaMask
+- Tu clave privada nunca sale de tu navegador
 - Solo wallets con EMITTER_ROLE pueden registrar lotes
+- El sistema valida el formato de datos antes de enviar a blockchain
 
 ## 📝 Notas
 
 - Los lotes se guardan localmente en localStorage para persistencia
 - El QR contiene toda la información del lote + URL de verificación
 - Las transacciones se pueden verificar en: https://sepolia.scrollscan.com
+- Compatible con despliegue en Netlify sin necesidad de configurar claves privadas en el servidor
