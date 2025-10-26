@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast"
 import { useWallet } from "@/hooks/use-wallet"
 import { getBatchId, registerBatchWithWallet } from "@/lib/blockchain"
+import { generateQRCode } from "@/lib/qr-generator"
 import type { BatchData } from "@/lib/types"
 import { Loader2, Package } from "lucide-react"
 import { ethers } from "ethers"
@@ -118,14 +119,11 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
     setIsSubmitting(true)
 
     try {
-      console.log("[v0] Starting batch registration process")
-
       if (typeof window === "undefined" || !window.ethereum) {
         throw new Error("MetaMask no está disponible. Por favor instala MetaMask.")
       }
 
       const batchId = getBatchId(formData.id)
-      console.log("[v0] Generated batchId:", batchId)
 
       const metadata = JSON.stringify({
         contenido: formData.contenido,
@@ -134,14 +132,10 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
         fechaVencimiento: formData.fechaVencimiento,
       })
 
-      console.log("[v0] Metadata:", metadata)
-
       const provider = new ethers.BrowserProvider(window.ethereum)
       const signer = await provider.getSigner()
 
-      console.log("[v0] Registering batch on blockchain...")
       const txHash = await registerBatchWithWallet(batchId, metadata, signer)
-      console.log("[v0] Transaction hash:", txHash)
 
       const newBatch: BatchData = {
         ...formData,
@@ -153,33 +147,23 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
       }
 
       try {
-        console.log("[v0] Generating QR code...")
-        const qrResponse = await fetch("/api/generate-qr", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            batchId,
-            data: { ...formData, txHash },
-          }),
+        const qrData = JSON.stringify({
+          batchId: formData.id,
+          contenido: formData.contenido,
+          cantidad: formData.cantidad,
+          fechaFabricacion: formData.fechaFabricacion,
+          fechaVencimiento: formData.fechaVencimiento,
+          txHash: txHash,
+          verifyUrl: `https://sepolia.scrollscan.com/tx/${txHash}`,
         })
 
-        console.log("[v0] QR API response status:", qrResponse.status)
-
-        if (qrResponse.ok) {
-          const qrData = await qrResponse.json()
-          console.log("[v0] QR data received:", qrData)
-          newBatch.qrUrl = qrData.qrUrl
-        } else {
-          const errorText = await qrResponse.text()
-          console.error("[v0] QR generation failed:", errorText)
-          // No lanzar error, solo registrar
-        }
+        const qrUrl = await generateQRCode(qrData)
+        newBatch.qrUrl = qrUrl
       } catch (qrError) {
-        console.error("[v0] QR generation error:", qrError)
-        // Continuar sin QR
+        console.error("Error generating QR:", qrError)
+        // Continue without QR
       }
 
-      console.log("[v0] Calling onBatchCreated with batch:", newBatch)
       onBatchCreated(newBatch)
 
       toast({
@@ -198,7 +182,7 @@ export function BatchForm({ onBatchCreated }: BatchFormProps) {
       })
       setErrors({})
     } catch (error: any) {
-      console.error("[v0] Error during submission:", error)
+      console.error("Error during submission:", error)
 
       toast({
         title: "❌ Error en la Transacción",
